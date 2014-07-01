@@ -3,7 +3,7 @@ import json
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.core.urlresolvers import reverse
 
-from server import WAITING_FOR_PLAYERS, RUNNING, OVER
+from server import WAITING_FOR_PLAYERS, RUNNING, OVER, PLAYING, QUIT, LOST, WON
 
 from server.models import Game, Player
 
@@ -59,34 +59,71 @@ def game_new(request):
         "game": game.to_dict(),
         "player": player.to_dict(show_secret=True),
         "game_url": request.build_absolute_uri(reverse(
-            'game-base', kwargs={"pk": game.pk, "secret": player.secret})),
+            "game-player-state",
+            kwargs={"pk": game.pk, "secret": player.secret})),
     })
+
+
+def game_state(request, pk):
+    if request.method.upper() not in ["GET"]:
+        return HttpResponseBadRequest()
+
+    game = Game.objects.get(pk=pk)
+
+    return _json_response({"game": game.to_dict()})
 
 
 def game_join(request, pk):
     if request.method.upper() not in ["POST"]:
         return HttpResponseBadRequest()
 
-    return _json_error("Not implemented yet.")
+    game = Game.objects.get(pk=pk)
+
+    if game.status != WAITING_FOR_PLAYERS:
+        return _json_error("Sorry mate, that game has started")
+
+    nick = request.POST.get("nick", None)
+    if not nick:
+        return _json_error("'nick' field is required.")
+
+    if game.player_set.filter(nick=nick).exists():
+        return _json_error("'nick' %s already taken" % nick)
+
+    player = Player(nick=nick, secret=Player.generate_secret(), game=game)
+    player.save()
+
+    if game.player_set.count() >= game.num_players:
+        game.status = RUNNING
+        game.save()
+
+    return _json_response({
+        "game": game.to_dict(),
+        "player": player.to_dict(show_secret=True),
+        "game_url": request.build_absolute_uri(reverse(
+            "game-player-state",
+            kwargs={"pk": game.pk, "secret": player.secret})),
+    })
 
 
-def game_state(request, pk, secret=None):
+def game_player_state(request, pk, secret):
     if request.method.upper() not in ["GET"]:
         return HttpResponseBadRequest()
 
-    return _json_error("Not implemented yet.")
+    game = Game.objects.get(pk=pk)
+    player = game.player_set.get(secret=secret, state=PLAYING)
 
-
-def game_get_roll(request, pk, secret):
-    if request.method.upper() not in ["GET"]:
-        return HttpResponseBadRequest()
-
-    return _json_error("Not implemented yet.")
+    return _json_response({
+        "game": game.to_dict(),
+        "player": player.to_dict(show_dice=True)
+    })
 
 
 def game_do_turn(request, pk, secret):
     if request.method.upper() not in ["POST"]:
         return HttpResponseBadRequest()
+
+    game = Game.objects.get(pk=pk)
+    player = game.player_set.get(secret=secret, state=PLAYING)
 
     return _json_error("Not implemented yet.")
 
@@ -95,4 +132,10 @@ def game_quit(request, pk, secret):
     if request.method.upper() not in ["POST"]:
         return HttpResponseBadRequest()
 
-    return _json_error("Not implemented yet.")
+    game = Game.objects.get(pk=pk)
+    player = game.player_set.get(secret=secret, state=PLAYING)
+
+    player.state = QUIT
+    player.save()
+
+    return _json_response(True)

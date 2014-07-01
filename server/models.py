@@ -2,7 +2,7 @@ import os
 
 from django.db import models
 
-from server import GAME_STATUSES, WAITING_FOR_PLAYERS
+from server import GAME_STATUSES, WAITING_FOR_PLAYERS, PLAYER_STATUSES, PLAYING
 
 
 def xstr(s):
@@ -26,21 +26,22 @@ class Game(models.Model):
     player_turn = models.SmallIntegerField(default=1)
     player_won = models.SmallIntegerField(blank=True, null=True, default=None)
 
+    @property
+    def players(self):
+        return self.player_set.order_by('number')
+
     def to_dict(self):
         return {
             "id": self.id,
+            "num_players": self.num_players,
             "status": self.status,
             "player_turn": self.player_turn,
             "player_won": self.player_won,
+            "players": [p.to_dict() for p in self.players]
         }
 
     def __str__(self):
-        return '<Game #' + self.id + ': ,'.join([
-            xstr(self.num_players),
-            xstr(self.status),
-            xstr(self.player_turn),
-            xstr(self.player_won),
-        ]) + '>'
+        return '#' + str(self.id)
 
 
 class Player(models.Model):
@@ -56,25 +57,26 @@ class Player(models.Model):
     game = models.ForeignKey(Game)
     dice = models.CommaSeparatedIntegerField(max_length=32, default="1,1,1,1,1")
 
+    # Denormalised field to make finding forfeiters, winners and losers easier
+    status = models.SmallIntegerField(choices=PLAYER_STATUSES, default=PLAYING)
+
     @staticmethod
     def generate_secret():
         return os.urandom(16).encode('hex')
 
-    def to_dict(self, show_secret=False):
+    def to_dict(self, show_dice=False, show_secret=False):
         data = {
             "nick": self.nick,
             "number": self.number,
-            "dice": self.dice,
         }
+        if show_dice:
+            data["dice"] = self.dice
         if show_secret:
             data["secret"] = self.secret
         return data
 
     def __str__(self):
-        return '<Game #' + self.id + ': ,'.join([
-            xstr(self.nick),
+        return '#' + str(self.id) + ': ' + ', '.join([
             xstr(self.number),
-            xstr(self.secret),
-            xstr(self.game),
-            xstr(self.dice),
-        ]) + '>'
+            xstr(self.nick)
+        ])

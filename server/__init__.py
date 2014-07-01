@@ -7,3 +7,16 @@ GAME_STATUSES = (
     (RUNNING, u"Game running now"),
     (OVER, u"Game over"),
 )
+
+
+PLAYING = 1
+QUIT = 2
+LOST = 3
+WON = 4
+
+PLAYER_STATUSES = (
+    (PLAYING, "Playing"),
+    (QUIT, "Quit"),
+    (LOST, "Lost"),
+    (WON, "Won"),
+)
