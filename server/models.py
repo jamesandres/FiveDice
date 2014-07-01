@@ -1,4 +1,5 @@
 import os
+import random
 
 from django.db import models
 
@@ -20,6 +21,9 @@ class Game(models.Model):
     status = models.SmallIntegerField(
         choices=GAME_STATUSES, default=WAITING_FOR_PLAYERS)
 
+    round = models.IntegerField(default=1)
+    last_gamble = models.CharField(max_length=32)
+
     # Using the player turn number here rather than foreign key references.
     # Slightly slower maybe but it is a relative value and avoids accidentally
     # referencing players who are not meant to be in this game.
@@ -29,6 +33,10 @@ class Game(models.Model):
     @property
     def players(self):
         return self.player_set.order_by('number')
+
+    def roll_all_dice(self):
+        for player in self.player_set.filter(status=PLAYING):
+            player.roll_dice()
 
     def to_dict(self):
         return {
@@ -55,7 +63,7 @@ class Player(models.Model):
     number = models.SmallIntegerField(default=1)
     secret = models.CharField(max_length=64)
     game = models.ForeignKey(Game)
-    dice = models.CommaSeparatedIntegerField(max_length=32, default="1,1,1,1,1")
+    dice = models.CommaSeparatedIntegerField(max_length=32, default="0,0,0,0,0")
 
     # Denormalised field to make finding forfeiters, winners and losers easier
     status = models.SmallIntegerField(choices=PLAYER_STATUSES, default=PLAYING)
@@ -63,6 +71,11 @@ class Player(models.Model):
     @staticmethod
     def generate_secret():
         return os.urandom(16).encode('hex')
+
+    def roll_dice(self):
+        # Roll 5 six sided dice
+        self.dice = ','.join([random.randint(1, 6) for i in range(5)])
+        self.save()
 
     def to_dict(self, show_dice=False, show_secret=False):
         data = {

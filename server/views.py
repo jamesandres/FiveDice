@@ -1,4 +1,5 @@
 import json
+import re
 
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.core.urlresolvers import reverse
@@ -94,7 +95,9 @@ def game_join(request, pk):
 
     if game.player_set.count() >= game.num_players:
         game.status = RUNNING
+        game.roll_all_dice()
         game.save()
+        # TODO: Send pusher message to everyone with new game state
 
     return _json_response({
         "game": game.to_dict(),
@@ -112,9 +115,12 @@ def game_player_state(request, pk, secret):
     game = Game.objects.get(pk=pk)
     player = game.player_set.get(secret=secret, state=PLAYING)
 
+    player_kwargs = {}
+    player_kwargs['show_dice'] = game.state == RUNNING
+
     return _json_response({
         "game": game.to_dict(),
-        "player": player.to_dict(show_dice=True)
+        "player": player.to_dict(**player_kwargs)
     })
 
 
@@ -124,6 +130,40 @@ def game_do_turn(request, pk, secret):
 
     game = Game.objects.get(pk=pk)
     player = game.player_set.get(secret=secret, state=PLAYING)
+
+    if game.player_turn != player.number:
+        return _json_error("It's not your turn!")
+
+    gamble = request.POST.get('gamble', None)
+
+    if not gamble:
+        return _json_error("You going to play or what?")
+
+    if gamble.lower() in ["bullshit", "exact"]:
+        if not game.last_gamble:
+            return _json_error(
+                "You can't call %s on the first turn of the round!" % gamble)
+        else:
+            # TODO: Handle the call.
+            pass
+    elif not re.match(r'^[0-9]+,[1-6]$', gamble):
+        return _json_error(
+            "'gamble' format is invalid. Format is '11,6' to "
+            "mean 'eleven sixes'")
+    else:
+        num_dice, value_called = map(int, gamble.split(','))
+        current_num_dice, current_value_called = map(int, game.last_gamble.split(','))
+
+        if not (value_called > current_value_called or
+                num_dice > current_num_dice):
+            return _json_error("Either the number of dice or the value must go up!")
+        else:
+            # TODO: Handle the gamble.
+            pass
+
+    # TODO: Did someone lose? -> update loser, update round
+    # TODO: Did someone win? -> update winner, update round, mark game over
+    # TODO: Notify everyone via pusher that state has changed.
 
     return _json_error("Not implemented yet.")
 
@@ -137,5 +177,7 @@ def game_quit(request, pk, secret):
 
     player.state = QUIT
     player.save()
+
+    # TODO: Notify everyone that game state changed.
 
     return _json_response(True)
