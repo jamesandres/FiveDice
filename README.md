@@ -30,7 +30,7 @@
 - Everyone fetches their roll from the server, for example here is player 1's
   NOTE: Repeat hits to "roll" will return the same result until the next round
 
-      GET /game/123/AAAAAAAAAAAAAAAA/roll
+      GET /game/123/AAAAAAAAAAAAAAAA/get_roll
       ~> {"dice": [1, 5, 3, 3, 2]}
 
 
@@ -73,7 +73,7 @@
 - Everyone fetches their roll from the server, for example here is player 2's
   Note that player 2 is now down one dice!
 
-      GET /game/123/AAAAAAAAAAAAAAAA/roll
+      GET /game/123/AAAAAAAAAAAAAAAA/get_roll
       ~> {"dice": [6, 2, 1, 1]}
 
 - Player 2's turn, they make their move
