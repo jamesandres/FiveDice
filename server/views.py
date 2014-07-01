@@ -90,7 +90,9 @@ def game_join(request, pk):
     if game.player_set.filter(nick=nick).exists():
         return _json_error("'nick' %s already taken" % nick)
 
-    player = Player(nick=nick, secret=Player.generate_secret(), game=game)
+    player = Player(
+        nick=nick, secret=Player.generate_secret(), game=game,
+        number=game.generate_next_player_number())
     player.save()
 
     if game.player_set.count() >= game.num_players:
@@ -113,10 +115,10 @@ def game_player_state(request, pk, secret):
         return HttpResponseBadRequest()
 
     game = Game.objects.get(pk=pk)
-    player = game.player_set.get(secret=secret, state=PLAYING)
+    player = game.player_set.get(secret=secret, status=PLAYING)
 
     player_kwargs = {}
-    player_kwargs['show_dice'] = game.state == RUNNING
+    player_kwargs['show_dice'] = game.status == RUNNING
 
     return _json_response({
         "game": game.to_dict(),
@@ -129,7 +131,7 @@ def game_do_turn(request, pk, secret):
         return HttpResponseBadRequest()
 
     game = Game.objects.get(pk=pk)
-    player = game.player_set.get(secret=secret, state=PLAYING)
+    player = game.player_set.get(secret=secret, status=PLAYING)
 
     if game.player_turn != player.number:
         return _json_error("It's not your turn!")
@@ -150,6 +152,9 @@ def game_do_turn(request, pk, secret):
         return _json_error(
             "'gamble' format is invalid. Format is '11,6' to "
             "mean 'eleven sixes'")
+    elif not game.last_gamble:
+        # TODO: Handle the first gamble.
+        pass
     else:
         num_dice, value_called = map(int, gamble.split(','))
         current_num_dice, current_value_called = map(int, game.last_gamble.split(','))
@@ -173,9 +178,9 @@ def game_quit(request, pk, secret):
         return HttpResponseBadRequest()
 
     game = Game.objects.get(pk=pk)
-    player = game.player_set.get(secret=secret, state=PLAYING)
+    player = game.player_set.get(secret=secret, status=PLAYING)
 
-    player.state = QUIT
+    player.status = QUIT
     player.save()
 
     # TODO: Notify everyone that game state changed.

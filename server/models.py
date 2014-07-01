@@ -34,6 +34,10 @@ class Game(models.Model):
     def players(self):
         return self.player_set.order_by('number')
 
+    def generate_next_player_number(self):
+        p = list(self.players)
+        return p[-1].number + 1 if p else 1
+
     def roll_all_dice(self):
         for player in self.player_set.filter(status=PLAYING):
             player.roll_dice()
@@ -74,7 +78,7 @@ class Player(models.Model):
 
     def roll_dice(self):
         # Roll 5 six sided dice
-        self.dice = ','.join([random.randint(1, 6) for i in range(5)])
+        self.dice = ','.join([str(random.randint(1, 6)) for i in range(5)])
         self.save()
 
     def to_dict(self, show_dice=False, show_secret=False):

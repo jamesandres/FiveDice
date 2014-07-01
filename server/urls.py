@@ -13,7 +13,7 @@ urlpatterns = patterns(
     url(r'^game/(?P<pk>[0-9]+)/$', views.game_state),
     url(r'^game/(?P<pk>[0-9]+)/join$', views.game_join),
 
-    url(r'^game/(?P<pk>[0-9]+)/(?P<secret>[0-9a-f]+)', views.game_player_state, name="game-player-state"),
+    url(r'^game/(?P<pk>[0-9]+)/(?P<secret>[0-9a-f]+)$', views.game_player_state, name="game-player-state"),
     url(r'^game/(?P<pk>[0-9]+)/(?P<secret>[0-9a-f]+)/do_turn$', views.game_do_turn),
     url(r'^game/(?P<pk>[0-9]+)/(?P<secret>[0-9a-f]+)/quit$', views.game_quit),
 )
