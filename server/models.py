@@ -4,7 +4,8 @@ import random
 from django.db import models
 
 from server import (
-    GAME_STATUSES, WAITING_FOR_PLAYERS, PLAYER_STATUSES, PLAYING, LOST, WON,
+    GAME_STATUSES, WAITING_FOR_PLAYERS, RUNNING, OVER,
+    PLAYER_STATUSES, PLAYING, LOST, WON,
     split_ints)
 
 
@@ -24,7 +25,7 @@ class Game(models.Model):
         choices=GAME_STATUSES, default=WAITING_FOR_PLAYERS)
 
     round = models.IntegerField(default=1)
-    last_gamble = models.CharField(max_length=32)
+    last_gamble = models.CharField(max_length=32, blank=True, null=True)
 
     # Using the player turn number here rather than foreign key references.
     # Slightly slower maybe but it is a relative value and avoids accidentally
@@ -53,8 +54,7 @@ class Game(models.Model):
             for v in dice:
                 totals[v] += 1
 
-        # Return the totals minus any empties
-        return {k: v for k, v in totals.items() if v > 0}
+        return totals
 
     def generate_next_player_number(self):
         p = list(self.players)
@@ -81,10 +81,10 @@ class Game(models.Model):
         totals = self.count_dice_for_all_players
 
         if totals[value_called] == num_dice:
-            loser = self.player_set.filter(number=self.prev_player_number)
+            loser = self.playing_players.get(number=self.prev_player_number())
             self.tally_round(player, loser, winner_gains_die=True)
         else:
-            winner = self.player_set.filter(number=self.prev_player_number)
+            winner = self.playing_players.get(number=self.prev_player_number())
             self.tally_round(winner, player)
 
     def do_bullshit(self):
@@ -93,13 +93,14 @@ class Game(models.Model):
         totals = self.count_dice_for_all_players
 
         if totals[value_called] < num_dice:
-            loser = self.player_set.filter(number=self.prev_player_number)
+            loser = self.playing_players.get(number=self.prev_player_number())
             self.tally_round(player, loser)
         else:
-            winner = self.player_set.filter(number=self.prev_player_number)
+            winner = self.playing_players.get(number=self.prev_player_number())
+            print repr(winner)
             self.tally_round(winner, player)
 
-    def tally_round(winner, loser, winner_gains_die=False):
+    def tally_round(self, winner, loser, winner_gains_die=False):
         loser.lost_round()
 
         if winner_gains_die:
@@ -110,6 +111,7 @@ class Game(models.Model):
             self.status = OVER
         else:
             self.round += 1
+            self.last_gamble = ""
             self.player_turn = loser.number
         self.save()
 
@@ -118,6 +120,8 @@ class Game(models.Model):
             "id": self.id,
             "num_players": self.num_players,
             "status": self.status,
+            "round": self.round,
+            "last_gamble": self.last_gamble,
             "player_turn": self.player_turn,
             "player_won": self.player_won,
             "players": [p.to_dict() for p in self.players]
@@ -149,24 +153,24 @@ class Player(models.Model):
 
     def roll_dice(self):
         # Roll 5 six sided dice
-        self.dice = ','.join([str(random.randint(1, 6)) for i in range(5)])
+        self.dice = ",".join([str(random.randint(1, 6)) for i in range(5)])
         self.save()
 
     def lost_round(self):
         dice = split_ints(self.dice)
 
         if len(dice) <= 0:
-            self.dice = ''
+            self.dice = ""
             self.status = LOST
         else:
-            self.dice = ','.join(dice[:-1])
+            self.dice = ",".join(map(str, dice[:-1]))
         self.save()
 
     def gain_a_die(self):
         dice = split_ints(self.dice)
 
         if len(dice) < 5:
-            self.dice = ','.join(dice + [1])
+            self.dice = ",".join(map(str, dice + [1]))
             self.save()
 
     def to_dict(self, show_dice=False, show_secret=False):

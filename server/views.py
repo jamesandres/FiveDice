@@ -148,7 +148,7 @@ def game_do_turn(request, pk, secret):
             return _json_error(
                 "You can't call %s on the first turn of the round!" % gamble)
         else:
-            getattr(game, "do_" + gamble)
+            getattr(game, "do_" + gamble)()
     elif not re.match(r'^[0-9]+,[1-6]$', gamble):
         return _json_error(
             "'gamble' format is invalid. Format is '11,6' to "
@@ -171,6 +171,10 @@ def game_do_turn(request, pk, secret):
                     "Either the number of dice or the value must go up!")
             else:
                 game.do_gamble(gamble)
+
+    if game.status != OVER:
+        game.roll_all_dice()
+        game.save()
 
     # TODO: Notify everyone via pusher that state has changed.
 

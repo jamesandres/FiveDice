@@ -23,4 +23,7 @@ PLAYER_STATUSES = (
 
 
 def split_ints(string):
-    return map(int, string.split(','))
+    if not string:
+        return []
+    else:
+        return map(int, string.split(','))
