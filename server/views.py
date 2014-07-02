@@ -4,7 +4,9 @@ import re
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.core.urlresolvers import reverse
 
-from server import WAITING_FOR_PLAYERS, RUNNING, OVER, PLAYING, QUIT, LOST, WON
+from server import (
+    WAITING_FOR_PLAYERS, RUNNING, OVER, PLAYING, QUIT, LOST, WON,
+    split_ints)
 
 from server.models import Game, Player
 
@@ -136,41 +138,43 @@ def game_do_turn(request, pk, secret):
     if game.player_turn != player.number:
         return _json_error("It's not your turn!")
 
-    gamble = request.POST.get('gamble', None)
+    gamble = request.POST.get('gamble', None).lower()
 
     if not gamble:
         return _json_error("You going to play or what?")
 
-    if gamble.lower() in ["bullshit", "exact"]:
+    if gamble in ["bullshit", "exact"]:
         if not game.last_gamble:
             return _json_error(
                 "You can't call %s on the first turn of the round!" % gamble)
         else:
-            # TODO: Handle the call.
-            pass
+            getattr(game, "do_" + gamble)
     elif not re.match(r'^[0-9]+,[1-6]$', gamble):
         return _json_error(
             "'gamble' format is invalid. Format is '11,6' to "
             "mean 'eleven sixes'")
-    elif not game.last_gamble:
-        # TODO: Handle the first gamble.
-        pass
     else:
-        num_dice, value_called = map(int, gamble.split(','))
-        current_num_dice, current_value_called = map(int, game.last_gamble.split(','))
+        num_dice, value_called = split_ints(gamble)
 
-        if not (value_called > current_value_called or
-                num_dice > current_num_dice):
-            return _json_error("Either the number of dice or the value must go up!")
+        if num_dice < 0:
+            return _json_error("Number of dice must be positive")
+        elif value_called < 1 or value_called > 6:
+            return _json_error("Value of dice must be between 1 and 6")
+
+        if not game.last_gamble:
+            game.do_gamble(gamble)
         else:
-            # TODO: Handle the gamble.
-            pass
+            cur_num_dice, cur_value_called = split_ints(game.last_gamble)
 
-    # TODO: Did someone lose? -> update loser, update round
-    # TODO: Did someone win? -> update winner, update round, mark game over
+            if not (value_called > cur_value_called or num_dice > cur_num_dice):
+                return _json_error(
+                    "Either the number of dice or the value must go up!")
+            else:
+                game.do_gamble(gamble)
+
     # TODO: Notify everyone via pusher that state has changed.
 
-    return _json_error("Not implemented yet.")
+    return _json_response({"game": game.to_dict()})
 
 
 def game_quit(request, pk, secret):

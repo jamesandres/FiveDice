@@ -20,3 +20,7 @@ PLAYER_STATUSES = (
     (LOST, "Lost"),
     (WON, "Won"),
 )
+
+
+def split_ints(string):
+    return map(int, string.split(','))
