@@ -4,8 +4,8 @@ import random
 from django.db import models
 
 from server import (
-    GAME_STATUSES, WAITING_FOR_PLAYERS, RUNNING, OVER,
-    PLAYER_STATUSES, PLAYING, LOST, WON,
+    GAME_STATUSES, WAITING_FOR_PLAYERS, OVER,
+    PLAYER_STATUSES, PLAYING, QUIT, LOST,
     split_ints)
 
 
@@ -26,6 +26,8 @@ class Game(models.Model):
 
     round = models.IntegerField(default=1)
     last_gamble = models.CharField(max_length=32, blank=True, null=True)
+    last_loser = models.SmallIntegerField(blank=True, null=True, default=None)
+    last_quitter = models.SmallIntegerField(blank=True, null=True, default=None)
 
     # Using the player turn number here rather than foreign key references.
     # Slightly slower maybe but it is a relative value and avoids accidentally
@@ -125,10 +127,12 @@ class Game(models.Model):
 
         if self.playing_players.count() == 1:
             self.player_won = winner.number
+            self.last_loser = loser.number
             self.status = OVER
         else:
             self.round += 1
             self.last_gamble = ""
+            self.last_loser = loser.number
             if loser.status == PLAYING:
                 self.player_turn = loser.number
             else:
@@ -142,6 +146,8 @@ class Game(models.Model):
             "status": self.status,
             "round": self.round,
             "last_gamble": self.last_gamble,
+            "last_loser": self.last_loser,
+            "last_quitter": self.last_quitter,
             "player_turn": self.player_turn,
             "player_won": self.player_won,
             "players": [p.to_dict() for p in self.ordered_players]
@@ -173,7 +179,9 @@ class Player(models.Model):
 
     def roll_dice(self):
         num_dice = len(split_ints(self.dice))
-        self.dice = ",".join([str(random.randint(1, 6)) for i in range(num_dice)])
+        self.dice = ",".join([
+            str(random.randint(1, 6))
+            for i in range(num_dice)])
         self.save()
 
     def lost_round(self):
@@ -192,6 +200,13 @@ class Player(models.Model):
         if len(dice) < 5:
             self.dice = ",".join(map(str, dice + [1]))
             self.save()
+
+    def do_quit(self):
+        self.status = QUIT
+        self.save()
+
+        self.game.last_quitter = self.number
+        self.game.save()
 
     def to_dict(self, show_dice=False, show_secret=False):
         data = {

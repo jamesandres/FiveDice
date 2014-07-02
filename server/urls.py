@@ -10,7 +10,7 @@ urlpatterns = patterns(
 
     url(r'^game/new$', views.game_new),
 
-    url(r'^game/(?P<pk>[0-9]+)/$', views.game_state),
+    url(r'^game/(?P<pk>[0-9]+)$', views.game_state),
     url(r'^game/(?P<pk>[0-9]+)/join$', views.game_join),
 
     url(r'^game/(?P<pk>[0-9]+)/(?P<secret>[0-9a-f]+)$', views.game_player_state, name="game-player-state"),

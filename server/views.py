@@ -5,8 +5,7 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from django.core.urlresolvers import reverse
 
 from server import (
-    WAITING_FOR_PLAYERS, RUNNING, OVER, PLAYING, QUIT, LOST, WON,
-    split_ints, jsonified_exceptions)
+    WAITING_FOR_PLAYERS, RUNNING, OVER, split_ints, jsonified_exceptions)
 
 from server.models import Game, Player
 
@@ -106,8 +105,9 @@ def game_join(request, pk):
 
     if game.player_set.count() >= game.num_players:
         game.status = RUNNING
-        game.roll_all_dice()
         game.save()
+
+        game.roll_all_dice()
         # TODO: Send pusher message to everyone with new game state
 
     return _json_response({
@@ -183,7 +183,6 @@ def game_do_turn(request, pk, secret):
 
     if game.status != OVER:
         game.roll_all_dice()
-        game.save()
 
     # TODO: Notify everyone via pusher that state has changed.
 
@@ -197,9 +196,7 @@ def game_quit(request, pk, secret):
 
     game = Game.objects.get(pk=pk)
     player = game.playing_players.get(secret=secret)
-
-    player.status = QUIT
-    player.save()
+    player.do_quit()
 
     # TODO: Notify everyone that game state changed.
 

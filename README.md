@@ -7,9 +7,25 @@
 
       POST /game/new {"num_players": 3, "nick": "acidburn"}
       ~> {
-             "player_id": 1,
-             "game_id": 123,
-             "game_url": "http://1.2.3.4/game/123/AAAAAAAAAAAAAAAA"
+             "game_url": "http://localhost:8000/game/123/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+             "player": {
+                 "nick": "acidburn",
+                 "secret": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                 "number": 1
+             },
+             "game": {
+                 "num_players": "3",
+                 "status": 1,
+                 "players": [{
+                     "nick": "acidburn",
+                     "number": 1
+                 }],
+                 "player_won": null,
+                 "last_gamble": null,
+                 "player_turn": 1,
+                 "id": 123,
+                 "round": 1
+             }
          }
 
 
@@ -21,34 +37,60 @@
   starts)
 
       POST /game/123/join {"nick": "zerocool"}
-      ~> {"game_url": "http://1.2.3.4/game/123/BBBBBBBBBBBBBBBB"}  # IN THE GAME!
-      ~> {"error": "Sorry mate, that game has started"}            # GAME FULL
+      # IN THE GAME!
+      ~> {
+             "game_url": "http://localhost:8000/game/123/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+             "player": {
+                 "nick": "zerocool",
+                 "secret": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+                 "number": 2
+             },
+             "game": {
+                 "num_players": 3,
+                 "status": 1,
+                 "players": [{
+                     "nick": "acidburn",
+                     "number": 1
+                 }, {
+                     "nick": "zerocool",
+                     "number": 2
+                 }],
+                 "player_won": null,
+                 "last_gamble": null,
+                 "player_turn": 1,
+                 "id": 123,
+                 "round": 1
+             }
+         }
+      # GAME FULL
+      ~> {"error": "Sorry mate, that game has started"}
 
 
 - Once a third joins the game is full and it begins. A pusher message is sent
   to everyone on the channel game:123 with first "game state event".
 
-      ~> {"round": 1, "player_turn": 1}  # IT'S PLAYER ONES TURN
+      # FIRST ROUND, IT'S PLAYER ONES TURN
+      ~> {"game": {"round": 1, "player_turn": 1, ..}, ..}
 
 
 - Everyone fetches their state from the server, for example here is player 1's
   NOTE: Repeat hits to fetch state will return the same result until the next
   round
 
-      GET /game/123/AAAAAAAAAAAAAAAA
-      ~> {"dice": [1, 5, 3, 3, 2]}
+      GET /game/123/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      ~> {"player": {"nick": "acidburn", "number": 1, "dice": "1,4,5,4,3", ..}, ..}
 
 
 
 - Player 1's turn, they make their move
 
-      POST /game/123/AAAAAAAAAAAAAAAA/do_turn
+      POST /game/123/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/do_turn
 
   Example POST data:
 
-      {"gamble": [2, 3]}      # SAY "I think there are at least TWO THREES"
-      {"gamble": "bullshit"}  # CALL BULLSHIT
-      {"gamble": "exact"}     # CALL EXACT on the previous gamble
+      gamble=2,3       # SAY "I think there are at least TWO THREES"
+      gamble=bullshit  # CALL BULLSHIT
+      gamble=exact     # CALL EXACT on the previous gamble
 
   Example responses:
 
@@ -61,7 +103,8 @@
 - Server calculates the result and updates game state. A push is sent out
   giving everyone new game state.
 
-      ~> {"round": 1, "player_turn": 2, "gamble": [2, 5]}  # IT'S PLAYER TWO'S TURN, etc.
+      # IT'S PLAYER TWO'S TURN, etc.
+      ~> {"game": {"round": 1, "player_turn": 2, "last_gamble": "2,5", ..} ..}
 
 
 - Everyone fetches their roll
@@ -69,7 +112,7 @@
 
 - Player 2's turn, they make their move
 
-      POST /game/123/BBBBBBBBBBBBBBBB/do_turn  {"gamble": "bullshit"}
+      POST /game/123/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB/do_turn  gamble=bullshit
 
 
 - Server calculates the result and updates game state. A push is sent out
@@ -77,30 +120,30 @@
   It's now players 2's turn to make the first call. Note we are now on
   round 2.
 
-      ~> {"round": 2, "player_turn": 2, "player_wrong": 2}
+      ~> {"game": {"round": 2, "player_turn": 2, "last_loser": 2, ..}, ..}
 
 
 - Everyone fetches their roll from the server, for example here is player 2's
   Note that player 2 is now down one dice!
 
-      GET /game/123/AAAAAAAAAAAAAAAA
-      ~> {"dice": [6, 2, 1, 1]}
+      GET /game/123/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+      ~> {"player": {"nick": "zerocool", "number": 1, "dice": "6,2,1,1", ..}, ..}
 
 
 - Player 2's turn, they make their move
 
-      POST /game/123/BBBBBBBBBBBBBBBB/do_turn  {"gamble": [2, 1]}
+      POST /game/123/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB/do_turn  gamble=2,1
 
 
 - Game state is calculated and sent via pusher..
 
-      ~> {"round": 2, "player_turn": 3, "gamble": [2, 1]}
+      ~> {"game": {"round": 2, "player_turn": 3, "last_gamble": "2,1", ..}, ..}
 
 
 - Player 3's turn finally
 
-      POST /game/123/CCCCCCCCCCCCCCCC/do_turn  {"gamble": [3, 1]}
-      ~> {"round": 2, "player_turn": 1, "gamble": [3, 1]}
+      POST /game/123/CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC/do_turn  gamble=3,1
+      ~> {"game": {"round": 2, "player_turn": 1, "last_gamble": "3,1", ..}, ..}
 
 
 - Game state is calculated and sent via pusher..
@@ -109,8 +152,8 @@
 - Player 1's turn again. They call exact and get it right!! Note we are now
   on round 3.
 
-      POST /game/123/AAAAAAAAAAAAAAAA/do_turn  {"gamble": "exact"}
-      ~> {"round": 3, "player_turn": 1, "player_exact": 1}
+      POST /game/123/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/do_turn  gamble=exact
+      ~> {"game": {"round": 2, "player_turn": 1, "last_loser": 3, ..}, ..}
 
 
 - Game keeps on going in the manner. Until someone loses all of their dice.
@@ -120,14 +163,14 @@
   welcome to keep connected to the pusher game state channel and watch the
   remainder of the game.
 
-      ~> {"round": 333, "player_turn": 1, "player_wrong": 2, "player_out": 2}
+      ~> {"game": {"round": 333, "player_turn": 1, "last_loser": 2, ..}, ..}
 
 
 - The game continues until only one player remains then everyone is notified
   via pusher of the victory. After this point the game is archived. All calls
   to the API will be met with an error: {"error": "Sorry mate, game over."}
 
-      ~> {"round": 999, "player_won": 1}
+      ~> {"game": {"round": 999, "player_won": 1, ..}, ..}
 
 
 - Optionally if a player wishes to bail on the game they may ping the "quit"
@@ -140,5 +183,5 @@
   This will update the game state and everyone will receive a pusher
   notification about this.
 
-      ~> {"round": 123, "player_quit": 2}
+      ~> {"game": {"round": 999, "player_quit": 1, ..}, ..}
 
