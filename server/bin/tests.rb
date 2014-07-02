@@ -6,7 +6,15 @@ require 'json'
 def req(url, data=nil)
     data_arg = !data.nil? ? "-d " + "'" + data + "'" : ""
     results = `curl -s #{data_arg} '#{url}'`
-    return JSON.parse(results)
+    begin
+        return JSON.parse(results)
+    rescue JSON::ParserError
+        puts "!" * 70
+        puts "COMMAND: `curl -s #{data_arg} '#{url}'`"
+        puts "RESULTS: '#{results}'"
+        puts ""
+        raise
+    end
 end
 
 player_nicks = ['arnold', 'betty', 'chuck']
@@ -71,6 +79,10 @@ begin
     if result['error']
         puts "    !! #{result['error']}"
     else
+        # Remove any players who lost
+        still_in = result['game']['players'].map { |p| p['number'] }
+        player_urls_map.select! { |num, url| still_in.include?(num) }
+
         rn = result['game']['round'].to_i
         if round_number < rn
             round_number = rn

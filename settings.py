@@ -45,6 +45,7 @@ MIDDLEWARE_CLASSES = (
     # 'django.contrib.auth.middleware.AuthenticationMiddleware',
     # 'django.contrib.messages.middleware.MessageMiddleware',
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'server.middleware.JSONExceptionMiddleware'
 )
 
 ROOT_URLCONF = 'urls'

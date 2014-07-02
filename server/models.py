@@ -38,7 +38,7 @@ class Game(models.Model):
         return self.player_set.filter(status=PLAYING)
 
     @property
-    def players(self):
+    def ordered_players(self):
         return self.playing_players.order_by('number')
 
     @property
@@ -57,22 +57,40 @@ class Game(models.Model):
         return totals
 
     def generate_next_player_number(self):
-        p = list(self.players)
+        p = list(self.ordered_players)
         return p[-1].number + 1 if p else 1
 
     def roll_all_dice(self):
         for player in self.player_set.filter(status=PLAYING):
             player.roll_dice()
 
-    def next_player_number(self):
+    def sibling_player(self, forwards=True):
+        length = self.playing_players.count()
+        qs = self.playing_players.order_by("number" if forwards else "-number")
+        pp = [p for p in qs]
+
+        if length <= 1:
+            return None
+
+        # Loop through the entire list, but only once
+        for i in range(length):
+            p = pp[i]
+
+            if p.number == self.player_turn:
+                # Next one, but wrap the list
+                return pp[(i + 1) % length]
+
         return (self.player_turn % self.num_players) + 1
 
-    def prev_player_number(self):
-        return (self.num_players + self.player_turn - 2) % self.num_players + 1
+    def next_player(self):
+        return self.sibling_player()
+
+    def prev_player(self):
+        return self.sibling_player(forwards=False)
 
     def do_gamble(self, gamble):
         self.last_gamble = gamble
-        self.player_turn = self.next_player_number()
+        self.player_turn = self.next_player().number
         self.save()
 
     def do_exact(self):
@@ -81,10 +99,10 @@ class Game(models.Model):
         totals = self.count_dice_for_all_players
 
         if totals[value_called] == num_dice:
-            loser = self.playing_players.get(number=self.prev_player_number())
+            loser = self.prev_player()
             self.tally_round(player, loser, winner_gains_die=True)
         else:
-            winner = self.playing_players.get(number=self.prev_player_number())
+            winner = self.prev_player()
             self.tally_round(winner, player)
 
     def do_bullshit(self):
@@ -93,11 +111,10 @@ class Game(models.Model):
         totals = self.count_dice_for_all_players
 
         if totals[value_called] < num_dice:
-            loser = self.playing_players.get(number=self.prev_player_number())
+            loser = self.prev_player()
             self.tally_round(player, loser)
         else:
-            winner = self.playing_players.get(number=self.prev_player_number())
-            print repr(winner)
+            winner = self.prev_player()
             self.tally_round(winner, player)
 
     def tally_round(self, winner, loser, winner_gains_die=False):
@@ -112,7 +129,10 @@ class Game(models.Model):
         else:
             self.round += 1
             self.last_gamble = ""
-            self.player_turn = loser.number
+            if loser.status == PLAYING:
+                self.player_turn = loser.number
+            else:
+                self.player_turn = winner.number
         self.save()
 
     def to_dict(self):
@@ -124,7 +144,7 @@ class Game(models.Model):
             "last_gamble": self.last_gamble,
             "player_turn": self.player_turn,
             "player_won": self.player_won,
-            "players": [p.to_dict() for p in self.players]
+            "players": [p.to_dict() for p in self.ordered_players]
         }
 
     def __str__(self):
@@ -152,14 +172,14 @@ class Player(models.Model):
         return os.urandom(16).encode('hex')
 
     def roll_dice(self):
-        # Roll 5 six sided dice
-        self.dice = ",".join([str(random.randint(1, 6)) for i in range(5)])
+        num_dice = len(split_ints(self.dice))
+        self.dice = ",".join([str(random.randint(1, 6)) for i in range(num_dice)])
         self.save()
 
     def lost_round(self):
         dice = split_ints(self.dice)
 
-        if len(dice) <= 0:
+        if len(dice) <= 1:
             self.dice = ""
             self.status = LOST
         else:

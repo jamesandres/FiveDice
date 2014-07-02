@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 
 from server import (
     WAITING_FOR_PLAYERS, RUNNING, OVER, PLAYING, QUIT, LOST, WON,
-    split_ints)
+    split_ints, jsonified_exceptions)
 
 from server.models import Game, Player
 
@@ -20,6 +20,7 @@ def _json_error(msg):
         json.dumps({"error": msg}), content_type="application/json")
 
 
+@jsonified_exceptions
 def game_list(request):
     if request.method.upper() not in ["GET"]:
         return HttpResponseBadRequest()
@@ -33,6 +34,7 @@ def game_list(request):
     })
 
 
+@jsonified_exceptions
 def game_rankings(request):
     if request.method.upper() not in ["GET"]:
         return HttpResponseBadRequest()
@@ -40,6 +42,7 @@ def game_rankings(request):
     return _json_error("Not implemented yet.")
 
 
+@jsonified_exceptions
 def game_new(request):
     if request.method.upper() not in ["POST"]:
         return HttpResponseBadRequest()
@@ -67,6 +70,7 @@ def game_new(request):
     })
 
 
+@jsonified_exceptions
 def game_state(request, pk):
     if request.method.upper() not in ["GET"]:
         return HttpResponseBadRequest()
@@ -76,6 +80,7 @@ def game_state(request, pk):
     return _json_response({"game": game.to_dict()})
 
 
+@jsonified_exceptions
 def game_join(request, pk):
     if request.method.upper() not in ["POST"]:
         return HttpResponseBadRequest()
@@ -89,6 +94,8 @@ def game_join(request, pk):
     if not nick:
         return _json_error("'nick' field is required.")
 
+    # It is not allowed to use a nick from another player in the same game. Even
+    # if that player is marked LOST or QUIT.
     if game.player_set.filter(nick=nick).exists():
         return _json_error("'nick' %s already taken" % nick)
 
@@ -112,12 +119,13 @@ def game_join(request, pk):
     })
 
 
+@jsonified_exceptions
 def game_player_state(request, pk, secret):
     if request.method.upper() not in ["GET"]:
         return HttpResponseBadRequest()
 
     game = Game.objects.get(pk=pk)
-    player = game.player_set.get(secret=secret, status=PLAYING)
+    player = game.playing_players.get(secret=secret)
 
     player_kwargs = {}
     player_kwargs['show_dice'] = game.status == RUNNING
@@ -128,12 +136,13 @@ def game_player_state(request, pk, secret):
     })
 
 
+@jsonified_exceptions
 def game_do_turn(request, pk, secret):
     if request.method.upper() not in ["POST"]:
         return HttpResponseBadRequest()
 
     game = Game.objects.get(pk=pk)
-    player = game.player_set.get(secret=secret, status=PLAYING)
+    player = game.playing_players.get(secret=secret)
 
     if game.player_turn != player.number:
         return _json_error("It's not your turn!")
@@ -181,12 +190,13 @@ def game_do_turn(request, pk, secret):
     return _json_response({"game": game.to_dict()})
 
 
+@jsonified_exceptions
 def game_quit(request, pk, secret):
     if request.method.upper() not in ["POST"]:
         return HttpResponseBadRequest()
 
     game = Game.objects.get(pk=pk)
-    player = game.player_set.get(secret=secret, status=PLAYING)
+    player = game.playing_players.get(secret=secret)
 
     player.status = QUIT
     player.save()

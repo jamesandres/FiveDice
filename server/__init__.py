@@ -1,3 +1,8 @@
+from django.core.exceptions import ObjectDoesNotExist
+
+from server.middleware import JSONException
+
+
 WAITING_FOR_PLAYERS = 1
 RUNNING = 2
 OVER = 3
@@ -27,3 +32,16 @@ def split_ints(string):
         return []
     else:
         return map(int, string.split(','))
+
+
+def jsonified_exceptions(fn):
+    def wrapped(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except ObjectDoesNotExist as e:
+            # Raises an exception which will be caught by the
+            # JSONExceptionMiddleware and sent as the response
+            raise JSONException(str(e), 404)
+        # except Exception as e:
+        #     raise JSONException(str(e), 500)
+    return wrapped
