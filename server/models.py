@@ -102,10 +102,10 @@ class Game(models.Model):
 
         if totals[value_called] == num_dice:
             loser = self.prev_player()
-            self.tally_round(player, loser, winner_gains_die=True)
+            self.tally_round(player, loser, "exact", winner_gains_die=True)
         else:
             winner = self.prev_player()
-            self.tally_round(winner, player)
+            self.tally_round(winner, player, "exact")
 
     def do_bullshit(self):
         player = self.current_player
@@ -114,12 +114,12 @@ class Game(models.Model):
 
         if totals[value_called] < num_dice:
             loser = self.prev_player()
-            self.tally_round(player, loser)
+            self.tally_round(player, loser, "bullshit")
         else:
             winner = self.prev_player()
-            self.tally_round(winner, player)
+            self.tally_round(winner, player, "bullshit")
 
-    def tally_round(self, winner, loser, winner_gains_die=False):
+    def tally_round(self, winner, loser, gamble, winner_gains_die=False):
         loser.lost_round()
 
         if winner_gains_die:
@@ -128,6 +128,7 @@ class Game(models.Model):
         if self.playing_players.count() == 1:
             self.player_won = winner.number
             self.last_loser = loser.number
+            self.last_gamble = gamble  # Log the winning gamble, for history
             self.status = OVER
         else:
             self.round += 1

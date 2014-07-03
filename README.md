@@ -29,8 +29,8 @@
          }
 
 
-- Each participant should set their pusher to the channel "game:123" (where
-  123 is the ID for your game)
+- Each participant should set their pusher to the channel "fivedice.game.123"
+  (where 123 is the ID for your game)
 
 
 - Somebody else joins the game (note, this example needs 3 people before it
@@ -67,7 +67,7 @@
 
 
 - Once a third joins the game is full and it begins. A pusher message is sent
-  to everyone on the channel game:123 with first "game state event".
+  to everyone on the channel fivedice.game.123 with first "game state event".
 
       # FIRST ROUND, IT'S PLAYER ONES TURN
       ~> {"game": {"round": 1, "player_turn": 1, ..}, ..}

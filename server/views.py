@@ -6,8 +6,8 @@ from django.core.urlresolvers import reverse
 
 from server import (
     WAITING_FOR_PLAYERS, RUNNING, OVER, split_ints, jsonified_exceptions)
-
 from server.models import Game, Player
+from server import message
 
 
 def _json_response(data):
@@ -17,6 +17,14 @@ def _json_response(data):
 def _json_error(msg):
     return HttpResponse(
         json.dumps({"error": msg}), content_type="application/json")
+
+
+def _push_game_state_to_clients(request, game, event):
+    message.send(
+        'game.' + str(game.id),
+        event,
+        json.dumps({"game": game.to_dict()}),
+        request.POST.get('socket_id', None))
 
 
 @jsonified_exceptions
@@ -108,7 +116,8 @@ def game_join(request, pk):
         game.save()
 
         game.roll_all_dice()
-        # TODO: Send pusher message to everyone with new game state
+
+        _push_game_state_to_clients(request, game, "game_join")
 
     return _json_response({
         "game": game.to_dict(),
@@ -184,7 +193,7 @@ def game_do_turn(request, pk, secret):
     if game.status != OVER:
         game.roll_all_dice()
 
-    # TODO: Notify everyone via pusher that state has changed.
+    _push_game_state_to_clients(request, game, "game_do_turn")
 
     return _json_response({"game": game.to_dict()})
 
@@ -198,6 +207,6 @@ def game_quit(request, pk, secret):
     player = game.playing_players.get(secret=secret)
     player.do_quit()
 
-    # TODO: Notify everyone that game state changed.
+    _push_game_state_to_clients(request, game, "game_quit")
 
     return _json_response(True)

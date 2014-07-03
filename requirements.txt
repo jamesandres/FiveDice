@@ -1,4 +1,5 @@
 Django==1.6.5
 gnureadline==6.3.3
 ipython==2.1.0
+pusher==0.8
 wsgiref==0.1.2

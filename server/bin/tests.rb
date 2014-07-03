@@ -89,4 +89,6 @@ begin
             round_start = true
         end
     end
+
+    sleep(0.2)
 end while result['error'] || result['game']['player_won'].nil?
