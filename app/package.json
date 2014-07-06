@@ -1,0 +1,69 @@
+{
+  "name": "FiveDice",
+  "version": "1.0.0",
+  "devDependencies": {
+    "browserify": "^4.1.10",
+    "browserify-shim": "^3.5.0",
+    "coffee-script": "1.7.1",
+    "coffeeify": "^0.6.0",
+    "convert-source-map": "^0.3.4",
+    "event-stream": "^3.1.5",
+    "gulp": "^3.8.0",
+    "gulp-clean": "0.3.0",
+    "gulp-coffee": "2.0.1",
+    "gulp-compass": "git://github.com/manutenfruits/gulp-compass.git#master",
+    "gulp-karma": "0.0.4",
+    "gulp-rename": "^1.2.0",
+    "gulp-sass": "^0.7.2",
+    "gulp-sourcemaps": "^0.4.1",
+    "gulp-uglify": "^0.3.0",
+    "gulp-util": "^2.2.17",
+    "karma": "^0.12.16",
+    "karma-cli": "0.0.4",
+    "karma-jasmine": "^0.1.5",
+    "knockout": "^3.1.0",
+    "lodash": "^2.4.1",
+    "moment": "^2.7.0",
+    "path": "^0.4.9",
+    "react": "^0.10.0",
+    "reactify": "^0.13.1",
+    "through2": "^0.5.1",
+    "vinyl-source-stream": "^0.1.1",
+    "watchify": "git://github.com/colinhowe/watchify.git#master",
+    "yargs": "^1.2.3"
+  },
+  "dependencies": {
+    "gridster": "git://github.com/ducksboard/gridster.js.git#v0.5.2",
+    "jquery": "^2.1.1"
+  },
+  "scripts": {
+    "gulp": "gulp"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jamesandres/FiveDice.git"
+  },
+  "browser": {
+    "gridster": "./node_modules/gridster/dist/jquery.gridster.js",
+    "highcharts": "./code/lib/highcharts.js"
+  },
+  "browserify": {
+    "transform": [
+      "browserify-shim"
+    ]
+  },
+  "browserify-shim": {
+    "gridster": {
+      "exports": null,
+      "depends": [
+        "jquery:jQuery"
+      ]
+    },
+    "highcharts": {
+      "exports": null,
+      "depends": [
+        "jquery:jQuery"
+      ]
+    }
+  }
+}
