@@ -25,6 +25,7 @@ class HelloWidget
 
     constructor: (options) ->
         @el = options.el
+        @speed = options.speed or 2000
 
     # Render, render, render
     render: ->
@@ -32,15 +33,15 @@ class HelloWidget
         React.renderComponent(component, @el)
 
     run: =>
-        @updateState()
+        @_updateState()
         @render()
-        @timer = setTimeout(@run, 2000)
+        @timer = setTimeout(@run, @speed)
 
     stop: ->
         clearTimeout(@timer)
         @timer = null
 
-    updateState: ->
+    _updateState: ->
         @state = @MESSAGES[Math.floor(Math.random() * @MESSAGES.length)]
 
 

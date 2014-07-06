@@ -15,7 +15,7 @@ module.exports = function(config) {
       //'test-main.js',
       //{pattern: 'lib/**/*.js', included: false},
       //'compiled/js/app.js',
-      './compiled/js/app.bundled.js'
+      './compiled/js/testBundler.js'
 //code/**/*Spec.coffee'}
     ],
 

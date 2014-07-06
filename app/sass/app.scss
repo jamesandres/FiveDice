@@ -1,3 +1,7 @@
 body {
     background-color: WhiteSmoke;
 }
+
+// Note, this works without prepending "../code/" because in gulpfile.js the
+// "./code" directory has been added to the sass "includePaths" option.
+@import "hello/hello";

@@ -44,7 +44,7 @@ var argv = require('yargs').argv;
  * Cleans out any compiled files
  */
 gulp.task('clean', function() {
-  return gulp.src(['./compiled/js/', './compiled/css/', './tmp/app.bundled.js'], {read: false})
+  return gulp.src(['./compiled/js/', './compiled/css/', './code/testBundler.js'], {read: false})
     .pipe(clean())
 });
 
@@ -53,7 +53,7 @@ gulp.task('clean', function() {
  */
 gulp.task('sass', function() {
   return gulp.src('sass/app.scss')
-    .pipe(sass())
+    .pipe(sass({"includePaths": ["./code"]}))
     .pipe(rename('app.css'))
     .pipe(gulp.dest('compiled/css'));
 });
@@ -84,12 +84,12 @@ var stripExtension = function(filename) {
 
 /*
  * Creates a file containing require statements for every single spec in
- * the project. Outputs to tmp/app.bundled.js which should be added to
+ * the project. Outputs to code/testBundler.js which should be added to
  * .gitignore)
  */
 var prepBundler = function() {
   var requires = []
-  
+
   var write = function(file, enc, cb) {
     var destName = stripExtension(file.relative)
     requires.push('require("./' + destName + '");');
@@ -100,7 +100,7 @@ var prepBundler = function() {
     var newFile = new gutil.File({
       base: __dirname,
       cwd: __dirname,
-      path: __dirname + '/../tmp/app.bundled.js',
+      path: __dirname + '/testBundler.js',
       contents: new Buffer(requires.join("\n"))
     });
     this.push(newFile);
@@ -182,7 +182,7 @@ var compile = function(watch) {
     .pipe(prepBundler())
     .pipe(gulp.dest('./code'))
     .on('end', function() {
-      gulp.src(['./code/app.coffee', './tmp/app.bundled.js'], {read: false})
+      gulp.src(['./code/app.coffee', './code/testBundler.js'], {read: false})
         .pipe(compileBundle(watch));
     });
 

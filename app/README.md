@@ -19,3 +19,5 @@
 # Testing
 
     ./node_modules/karma/bin/karma start karma.conf.js
+
+Then open a browser to http://localhost:9876
