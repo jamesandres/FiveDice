@@ -1,0 +1,18 @@
+<div ng-controller="JoinGameCtrl">
+    <h1>Join Game #{{id}}?</h1>
+
+    <form name="joinForm" ng-submit="joinGame(joinForm.$valid, id)" novalidate>
+        <div>
+            <div class="errors">
+                <div ng-show="joinForm.nick.$error.required && !joinForm.$pristine">Nick name field is required.</div>
+                <div ng-show="joinForm.nick.$error.maxlength">Maximum nick name length is 32 characters.</div>
+            </div>
+
+            <label for="nick">Nick name</label>
+            <input type="text" name="nick" ng-model="nick" ng-maxlength="32"
+                   ng-placeholder="Nick name.." ng-required="true" autofocus>
+
+        </div>
+        <input type="submit" value="Join Game">
+    </form>
+</div>

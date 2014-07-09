@@ -3,7 +3,7 @@
 
     <ul>
         <li ng-repeat="game in games">
-            Game #{{game.id}} <button>Join game with {{game.player_nicks.join(", ")}}</button>
+            Game #{{game.id}} <button ng-click="joinGame(game)">Join Game</button>
         </li>
     </ul>
 </div>
