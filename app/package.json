@@ -30,7 +30,8 @@
     "through2": "^0.5.1",
     "vinyl-source-stream": "^0.1.1",
     "watchify": "git://github.com/colinhowe/watchify.git#master",
-    "yargs": "^1.2.3"
+    "yargs": "^1.2.3",
+    "napa": "^0.4.1"
   },
   "dependencies": {
     "gridster": "git://github.com/ducksboard/gridster.js.git#v0.5.2",
@@ -39,7 +40,8 @@
     "backbone.marionette": "^2.0.1"
   },
   "scripts": {
-    "gulp": "gulp"
+    "gulp": "gulp",
+    "install": "napa"
   },
   "repository": {
     "type": "git",
@@ -67,5 +69,9 @@
         "jquery:jQuery"
       ]
     }
+  },
+  "napa": {
+    "angular": "angular/bower-angular",
+    "angular-route": "angular/bower-angular-route"
   }
 }

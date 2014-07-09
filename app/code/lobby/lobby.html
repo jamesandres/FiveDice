@@ -1,0 +1,9 @@
+<div ng-controller="LobbyCtrl">
+    <h1>FiveDice Lobby</h1>
+
+    <ul>
+        <li ng-repeat="game in games">
+            Game #{{game.id}} <button>Join game with {{game.player_nicks.join(", ")}}</button>
+        </li>
+    </ul>
+</div>
