@@ -1,3 +1,29 @@
 <div ng-controller="UICtrl">
     <h1>Game #{{id}}</h1>
+
+    <!-- Game status is WAITING_FOR_PLAYERS -->
+    <div ng-show="game.status == 1">
+        Waiting for players..
+    </div>
+
+    <!-- Game status is RUNNING -->
+    <div ng-show="game.status == 2">
+        <header>
+            <players-list players="game.players"></players-list>
+            <game-round round="game.round"></game-round>
+        </header>
+
+        <div>{{latestInfo}}</div>
+
+        <dice dice="dice"></dice>
+
+        <!-- TODO Pass game state data in here -->
+        <do-turn-form ng-show="game.player_turn == player.number"></do-turn-form>
+    </div>
+
+    <!-- Game status is OVER -->
+    <div ng-show="game.status == 3">
+        Game over!
+    </div>
+
 </div>
