@@ -3,7 +3,7 @@ module.exports = ["$scope", "$location", "$routeParams", "gameAPI", ($scope, $lo
 
     $scope.nick = ""
 
-    $scope.joinGame = (isValid, id) ->
+    $scope.submit = (isValid, id) ->
         if isValid
             gameAPI.join(id, $scope.nick).then (response) ->
                 $location.path("/game/#{id}/#{response.data.player.secret}")

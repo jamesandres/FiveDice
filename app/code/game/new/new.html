@@ -1,3 +1,30 @@
 <div ng-controller="NewGameCtrl">
     <h1>New Game</h1>
+
+    <form name="form" ng-submit="submit(form.$valid, id)" novalidate>
+        <div>
+            <div class="errors">
+                <div ng-show="form.nick.$error.required && !form.$pristine">Nick name field is required.</div>
+                <div ng-show="form.nick.$error.maxlength">Maximum nick name length is 32 characters.</div>
+            </div>
+
+            <label for="nick">Your nick name</label>
+            <input type="text" name="nick" ng-model="nick" ng-maxlength="32"
+                   ng-placeholder="Nick name.." ng-required="true" autofocus>
+        </div>
+
+        <div>
+            <div class="errors">
+                <div ng-show="form.numPlayers.$error.required && !form.$pristine">Number of players is required.</div>
+                <div ng-show="form.numPlayers.$error.min">Minimum players is 2.</div>
+                <div ng-show="form.numPlayers.$error.max">Maximum players is 8.</div>
+            </div>
+
+            <label for="numPlayers">Nick name</label>
+            <input type="number" name="numPlayers" ng-model="numPlayers"
+                   min="2" max="8" ng-required="true">
+        </div>
+
+        <input type="submit" value="Create New Game">
+    </form>
 </div>
