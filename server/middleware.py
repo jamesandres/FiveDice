@@ -34,10 +34,13 @@ class JSONExceptionMiddleware(object):
 
 class JSONRequestMiddleware(object):
     def process_request(self, request):
-        if not hasattr(request, 'body'):
+        if not hasattr(request, 'body') or not request.body:
             return
 
         if 'application/json' in request.META.get('HTTP_ACCEPT', ''):
             json_str = request.body.decode(encoding='UTF-8')
-            json_obj = json.loads(json_str)
-            request.POST = json_obj
+            setattr(
+                request,
+                request.method,
+                {} if not json_str else json.loads(json_str)
+            )

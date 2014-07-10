@@ -4,7 +4,7 @@ module.exports = ["$http", ($http) ->
         # the data by binding a .then(), .error() or .done() method.
         lobby: -> $http.get "/game/lobby"
         # FIXME: Currently fails because the backend does not accept JSON POST
-        new: (nick) -> $http.post "/game/new", {"nick": nick}
+        new: (nick, num_players) -> $http.post "/game/new", {"nick": nick, "num_players": num_players}
         # FIXME: Currently fails because the backend does not accept JSON POST
         join: (id, nick) -> $http.post "/game/#{id}/join", {"nick": nick}
     }
